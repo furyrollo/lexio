@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Learn — three screens in one file:
+   Learn — hub, activity runner, and session summary in one file:
 
    1. Hub        activity cards from the Activities registry, scoped by an
                  optional category filter, gated until the language holds
@@ -191,7 +191,9 @@
   function sessionMeta(act, pool) {
     var n = Math.min(act.sessionSize, pool.length);
     if (act.id === 'match') { return Math.min(5, pool.length) + ' pairs on the board'; }
+    if (act.id === 'memory') { return Math.min(4, pool.length) + ' pairs to remember'; }
     if (act.id === 'quiz') { return n + ' ' + UI.plural(n, 'question'); }
+    if (act.id === 'type-it') { return n + ' words to recall and type'; }
     return n + ' ' + UI.plural(n, 'card') + ', weighted for you';
   }
 

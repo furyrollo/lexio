@@ -117,7 +117,7 @@ browser blocks local storage.
 | `#/manage` | Manage Words — languages, backup, restore, erase |
 | `#/manage/category/:id` | Manage Words pre-scoped to one category |
 
-Activity ids (registry): `flashcards`, `quiz`, `match`.
+Activity ids (registry): `flashcards`, `quiz`, `type-it`, `match`, `memory`.
 
 ### The Notebook
 
@@ -264,9 +264,14 @@ works.)
   "How do you say it?" (meaning → term). Distractors are drawn from your own words,
   preferring the same category so wrong answers stay plausible. Numbered options answerable
   by keyboard, instant colour-coded feedback.
+- *Type It* — the meaning is shown and the learner produces the target spelling from
+  memory. Unicode-normalized transliterated or native spellings are accepted, with clear
+  answer feedback instead of multiple-choice recognition.
 - *Match-up* — up to 5 pairs on two columns against a gentle count-up clock. First-try
   matches rate as known; pairs needing retries report "still learning" once. Slips are
   counted but never punished beyond a shake.
+- *Memory Match* — a concentration grid with four word ↔ meaning pairs. Cards stay hidden
+  until flipped, mismatches turn back after a short pause, and clean finds rate as known.
 
 **Scheduler (`js/scheduler.js`) — simple and transparent, no AI.**
 Each word sits in one of five Leitner boxes stored on its synced `stats`:
@@ -398,7 +403,7 @@ answer recording, session summary and sync all come for free.
 
 ### Not yet implemented (Phase 6+)
 
-- Audio / pronunciation, tags, a typing trainer.
+- Audio / pronunciation and tags.
 - Cloud sync for the session log (words and boxes already sync; history is local-only).
 - Deeper Review drill-downs, e.g. tapping a mastery bar to open that category's words.
 

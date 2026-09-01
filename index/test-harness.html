@@ -9,7 +9,9 @@
 <script src="js/activities/registry.js"></script>
 <script src="js/activities/flashcards.js"></script>
 <script src="js/activities/quiz.js"></script>
+<script src="js/activities/type-it.js"></script>
 <script src="js/activities/match.js"></script>
+<script src="js/activities/memory.js"></script>
 <script>
 (function () {
   var pass = 0, fail = 0;
@@ -87,7 +89,9 @@
      PHASE 4 - Learn mode: scheduler, answers, sessions, gating
      ======================================================================== */
   ok('scheduler exposes six boxes', Scheduler.BOXES.length === 6);
-  ok('activities register three modes', Activities.list().length === 3);
+  ok('activities register five modes', Activities.list().length === 5);
+  ok('production and memory activities are available',
+    Activities.get('type-it').minWords === 1 && Activities.get('memory').minWords === 3);
   ok('gate minimum is four words', Activities.GATE_MIN_WORDS === 4);
 
   // A fresh word climbs one box per correct answer.
