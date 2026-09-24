@@ -60,7 +60,8 @@
       '<span class="cat-head__back-label">All categories</span>' +
       '<div class="cat-head__band">' +
         '<div class="cat-head__row">' +
-          '<span class="cat-head__icon" aria-hidden="true">' + Icon(cat.icon) + '</span>' +
+          '<span class="cat-head__icon' + (global.CatArt && CatArt.has(cat.icon) ? ' cat-head__icon--art' : '') + '" aria-hidden="true">' +
+            (global.CatArt && CatArt.has(cat.icon) ? CatArt(cat.icon) : Icon(cat.icon)) + '</span>' +
           '<div class="cat-head__copy">' +
             '<span class="cat-head__tag">' + esc(countLabel) + '</span>' +
             '<h1>' + esc(cat.name) + '</h1>' +

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Home — Warm Atelier: bento hero with Today ring, tinted category grid.
+   Home — Field Guide: bento hero, chapter strip, die-cut sticker category tiles.
    ========================================================================== */
 (function (global) {
   'use strict';
@@ -9,39 +9,81 @@
 
   function isDark() { return document.documentElement.dataset.theme === 'dark'; }
 
+  /* Resting tilt for each sticker — a hand-placed, not machine-gridded, feel. */
+  var TILTS = [-7, 5, -3, 8, -5, 4, -8, 6, -4, 3];
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  /** Ten-pip meter: each pip is a tenth of the category learned. */
+  function pipsHTML(pct) {
+    var on = Math.round(pct / 10);
+    if (pct > 0 && on === 0) { on = 1; }
+    var out = '<span class="pips" role="presentation">';
+    for (var p = 0; p < 10; p++) {
+      out += '<i' + (p < on ? ' class="on" style="--p:' + p + '"' : '') + '></i>';
+    }
+    return out + '</span>';
+  }
+
   function cardHTML(cat, stat) {
     var empty = stat.total === 0;
     var pct = stat.total ? Math.round((stat.learned / stat.total) * 100) : 0;
     var done = !empty && stat.learned === stat.total;
     var i = (cardIndex++);
+    var tilt = TILTS[cat.order % TILTS.length];
 
-    var meta = empty
-      ? '<span>No words yet</span>'
-      : '<span class="cat-card__count">' + stat.learned + ' learned</span>' +
-        '<span class="cat-card__dot" aria-hidden="true"></span>' +
-        '<span>' + stat.total + ' ' + UI.plural(stat.total, 'word') + '</span>';
+    var foot = empty
+      ? '<span class="fg-tile__start">Start here<span class="fg-tile__plus" aria-hidden="true">' + Icon('plus') + '</span></span>'
+      : '<span class="fg-tile__count"><b>' + stat.learned + '</b><span>/' + stat.total + ' learned</span></span>' +
+        pipsHTML(pct);
 
     var label = empty
       ? cat.name + ', no words yet. Open to add some.'
       : cat.name + ', ' + stat.learned + ' of ' + stat.total + ' words learned.';
 
     return '' +
-      '<a class="cat-card' + (empty ? ' cat-card--empty' : '') + '" ' +
+      '<a class="fg-tile' + (empty ? ' is-empty' : '') + (done ? ' is-done' : '') + '" ' +
          'href="#/category/' + cat.id + '" ' +
-         'style="' + Categories.styleVars(cat, isDark()) + '--i:' + i + '" ' +
+         'style="' + Categories.styleVars(cat, isDark()) + '--i:' + i + ';--tilt:' + tilt + 'deg" ' +
          'aria-label="' + esc(label) + '">' +
-        (done ? '<span class="cat-card__done" aria-hidden="true">' + Icon('check') + '</span>' : '') +
-        '<span class="cat-card__icon" aria-hidden="true">' + Icon(cat.icon) + '</span>' +
-        '<span class="cat-card__text">' +
-          '<span class="cat-card__name">' + esc(cat.name) + '</span>' +
-          '<span class="cat-card__meta">' + meta + '</span>' +
+        '<span class="fg-tile__no" aria-hidden="true">' + pad2(cat.order + 1) + '</span>' +
+        (done ? '<span class="fg-tile__stamp" aria-hidden="true">' + Icon('check') + 'Mastered</span>' : '') +
+        '<span class="fg-tile__art" aria-hidden="true">' +
+          (global.CatArt && CatArt.has(cat.icon) ? CatArt(cat.icon) : Icon(cat.icon)) +
         '</span>' +
-        (empty
-          ? '<span class="cat-card__add">+ Add</span>'
-          : '<span class="bar cat-card__bar" role="presentation">' +
-            '<span class="bar__fill" data-w="' + pct + '" style="inline-size:0%"></span>' +
-            '</span>') +
+        '<span class="fg-tile__body">' +
+          '<span class="fg-tile__name">' + esc(cat.name) + '</span>' +
+          '<span class="fg-tile__blurb">' + esc(cat.blurb) + '</span>' +
+        '</span>' +
+        '<span class="fg-tile__foot">' + foot + '</span>' +
       '</a>';
+  }
+
+  /* Chapter strip — one card per tier, jumps to that section. */
+  function chaptersHTML(stats) {
+    return '<nav class="chapters" aria-label="Jump to a chapter">' +
+      Categories.tiers.map(function (tier, t) {
+        var cats = Categories.byTier(tier.id);
+        var words = 0, started = 0;
+        cats.forEach(function (c) {
+          var st = stats[c.id] || { total: 0 };
+          words += st.total; if (st.total > 0) { started++; }
+        });
+        var lead = cats[0];
+        return '<button type="button" class="chapter" data-jump="' + tier.id + '" ' +
+            'style="' + Categories.styleVars(lead, isDark()) + '">' +
+          '<span class="chapter__no">' + pad2(t + 1) + '</span>' +
+          '<span class="chapter__txt"><b>' + esc(tier.label) + '</b>' +
+            '<span>' + started + '/' + cats.length + ' started · ' + words + ' ' + UI.plural(words, 'word') + '</span></span>' +
+          '<span class="chapter__stack" aria-hidden="true">' +
+            cats.slice(0, 3).map(function (c) {
+              return '<span class="chapter__chip" style="' + Categories.styleVars(c, isDark()) + '">' +
+                (global.CatArt ? CatArt(c.icon) : Icon(c.icon)) + '</span>';
+            }).join('') +
+          '</span>' +
+        '</button>';
+      }).join('') +
+    '</nav>';
   }
 
   function ringSVG(pct, idSuffix) {
@@ -63,6 +105,17 @@
       '</span>';
   }
 
+  /* A little pile of category stickers tucked into the Today card. */
+  function scatterHTML() {
+    if (!global.CatArt) { return ''; }
+    return '<span class="scatter" aria-hidden="true">' +
+      ['greetings', 'colors', 'animals'].map(function (id, n) {
+        var c = Categories.get(id);
+        return '<span class="scatter__s scatter__s--' + n + '" style="' + Categories.styleVars(c, isDark()) + '">' +
+          CatArt(c.icon) + '</span>';
+      }).join('') + '</span>';
+  }
+
   function heroHTML(totals, lang) {
     var hasWords = totals.words > 0;
 
@@ -79,11 +132,11 @@
             '<div class="hero__cta">' +
               '<a class="btn btn--primary" href="#/welcome">' + Icon('plus') +
               (lang ? 'Add your first words' : 'Start with your language') + '</a>' +
-              (lang ? '<a class="btn" href="#/learn">Browse categories</a>'
+              (lang ? '<a class="btn" href="#/home" data-act="browse">Browse categories</a>'
                     : '<button type="button" class="btn" id="hero-lang">' + Icon('globe') + 'Choose a language</button>') +
             '</div>' +
           '</div>' +
-          '<aside class="hero__today" aria-label="Get started">' +
+          '<aside class="hero__today" aria-label="Get started">' + scatterHTML() +
             '<div class="today__top"><span class="eyebrow">Today</span></div>' +
             ringSVG(0, 'h') +
             '<div class="today__copy"><strong>Add 5 words to unlock your first session</strong>' +
@@ -117,9 +170,9 @@
             '<a class="btn" href="#/home" data-act="browse">Browse categories</a>' +
           '</div>' +
         '</div>' +
-        '<aside class="hero__today" aria-label="Today">' +
+        '<aside class="hero__today" aria-label="Today">' + scatterHTML() +
           '<div class="today__top"><span class="eyebrow">Today</span></div>' +
-          '<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">' +
+          '<div class="today__body">' +
             ringSVG(pct, 'h') +
             '<div class="today__copy"><strong>' + (due ? due + ' ' + UI.plural(due, 'word') + ' due now' : 'All caught up') + '</strong>' +
               '<p>Best streak ' + totals.streak + ' ' + UI.plural(totals.streak, 'day') + ' · ' + totals.learned + ' of ' + totals.words + ' sticking</p>' +
@@ -171,19 +224,29 @@
 
     var html = heroHTML(totals, lang);
 
-    Categories.tiers.forEach(function (tier) {
+    html += '<div class="fg-intro">' +
+        '<div class="fg-intro__copy"><span class="eyebrow">Your field guide</span>' +
+          '<h2>Twenty rooms of words, <em>basic to bold</em>.</h2></div>' +
+        '<p>Every category starts empty. Fill the ones you need — the stickers light up as words stick.</p>' +
+      '</div>' +
+      chaptersHTML(stats);
+
+    Categories.tiers.forEach(function (tier, t) {
       var cats = Categories.byTier(tier.id);
       var started = cats.filter(function (c) { return stats[c.id] && stats[c.id].total > 0; }).length;
       html += '' +
-        '<div class="tier">' +
-          '<div class="tier__head">' +
-            '<span class="tier__label">' + esc(tier.label) + '</span>' +
-            '<span class="tier__hint">' + esc(tier.hint) + '</span>' +
+        '<section class="fg-chapter" id="chapter-' + tier.id + '" aria-labelledby="chapter-' + tier.id + '-title">' +
+          '<header class="tier">' +
+            '<span class="tier__no" aria-hidden="true">' + pad2(t + 1) + '</span>' +
+            '<div class="tier__head">' +
+              '<h2 class="tier__label" id="chapter-' + tier.id + '-title">' + esc(tier.label) + '</h2>' +
+              '<span class="tier__hint">' + esc(tier.hint) + '</span>' +
+            '</div>' +
+            '<span class="tier__count"><b>' + started + '</b><span>/' + cats.length + '&nbsp;started</span></span>' +
+          '</header>' +
+          '<div class="cat-grid fg-grid">' +
+            cats.map(function (c) { return cardHTML(c, stats[c.id]); }).join('') +
           '</div>' +
-          '<span class="tier__count">' + started + ' of ' + cats.length + ' started</span>' +
-        '</div>' +
-        '<section class="cat-grid" aria-label="' + esc(tier.label) + ' categories">' +
-          cats.map(function (c) { return cardHTML(c, stats[c.id]); }).join('') +
         '</section>';
     });
 
@@ -198,10 +261,18 @@
     if (browse) {
       browse.addEventListener('click', function (e) {
         e.preventDefault();
-        var first = UI.$('.cat-grid', root);
+        var first = UI.$('.chapters', root);
         if (first) { first.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       });
     }
+    UI.$$('[data-jump]', root).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target = document.getElementById('chapter-' + btn.dataset.jump);
+        if (!target) { return; }
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      });
+    });
   }
 
   global.Views = global.Views || {};
