@@ -79,10 +79,17 @@
       return dark
         ? '--cat-fg:hsl(' + h + ' 75% 74%);--cat-bg:hsl(' + h + ' 30% 18%);' +
           '--cat-line:hsl(' + h + ' 25% 32%);--cat-wash:hsl(' + h + ' 35% 14%);' +
-          '--cat-glow:hsl(' + h + ' 60% 60% / .2)'
+          '--cat-glow:hsl(' + h + ' 60% 60% / .2);' +
+          /* Field-guide tiles (home grid + sticker art) */
+          '--cat-tile:hsl(' + h + ' 42% 21%);--cat-tile-soft:hsl(' + h + ' 20% 14%);' +
+          '--cat-spot:hsl(' + h + ' 82% 62%);--cat-deep:hsl(' + h + ' 85% 84%);' +
+          '--cat-edge:hsl(' + h + ' 40% 38%);--cat-drop:hsl(' + h + ' 60% 5%);'
         : '--cat-fg:hsl(' + h + ' 55% 38%);--cat-bg:hsl(' + h + ' 85% 93%);' +
           '--cat-line:hsl(' + h + ' 60% 84%);--cat-wash:hsl(' + h + ' 90% 96%);' +
-          '--cat-glow:hsl(' + h + ' 70% 55% / .25)';
+          '--cat-glow:hsl(' + h + ' 70% 55% / .25);' +
+          '--cat-tile:hsl(' + h + ' 92% 85%);--cat-tile-soft:hsl(' + h + ' 70% 94%);' +
+          '--cat-spot:hsl(' + h + ' 84% 57%);--cat-deep:hsl(' + h + ' 62% 26%);' +
+          '--cat-edge:hsl(258 25% 11%);--cat-drop:hsl(258 25% 11%);';
     }
   };
 })(window);

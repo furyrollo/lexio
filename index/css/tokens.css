@@ -154,6 +154,11 @@
   --cat-line: hsl(258 60% 84%);
   --cat-wash: hsl(258 90% 96%);
   --cat-glow: hsl(258 60% 60% / .25);
+
+  /* Field Guide sticker-book ink: outlines + hard offset shadows */
+  --fg-ink: hsl(258 25% 11%);
+  --art-ink: hsl(258 25% 11%);
+  --art-paper: #FFFDF7;
 }
 
 /* ==========================================================================
@@ -240,4 +245,8 @@
   --cat-line: hsl(258 25% 32%);
   --cat-wash: hsl(258 35% 14%);
   --cat-glow: hsl(258 60% 60% / .2);
+
+  --fg-ink: hsl(258 12% 34%);
+  --art-ink: hsl(258 25% 9%);
+  --art-paper: #FFF8EC;
 }

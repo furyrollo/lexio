@@ -36,6 +36,7 @@ css/base.css               reset + logical-property base + RTL rules
 css/components.css         buttons, chips, cards, fields, modals, toasts, empty states
 css/app.css                app shell + views (mobile-first, desktop at >=900px)
 js/icons.js                inline SVG icon set (one consistent 24px family)
+js/cat-art.js              "Field Guide" sticker illustrations, one per category (48px, CSS-themable)
 js/categories.js           the 20-category taxonomy + tiers
 js/languages.js            real language list with BCP-47 codes + default direction
 js/quick-add.js            floating quick-add sheet (context category, dup check)
@@ -78,7 +79,18 @@ assets/favicon.svg
 - Manage Words is visually separated in both (a divider before it, and it turns the
   clay accent when active) so it never blends into browsing.
 
-**4. Home** — responsive category grid.
+**4. Home** — the "Field Guide" category grid.
+- Each category gets a hand-drawn die-cut **sticker** (`js/cat-art.js`): paper fill,
+  ink outline and one spot colour from the category hue, set on a matching tinted tile
+  with a hard offset shadow. Stickers rest at a slight tilt and straighten + wiggle on
+  hover. Empty categories show as dashed "not stuck yet" tiles with a *Start here* action.
+- Progress is a ten-pip meter; fully learned categories get a gold **Mastered** ribbon.
+- A chapter strip (four tiers, swipeable on mobile) jumps to each section; tier headers
+  use big outlined chapter numbers.
+- On mobile the grid is two-up, and the odd fifth tile in each chapter becomes a wide
+  feature tile, so there are no gaps.
+
+*Previous notes:*
 - 20 cards grouped into four tiers: First words → People & places → The wider world →
   Building sentences.
 - Each card has a large icon in a hue-tinted well unique to that category, the name, and
