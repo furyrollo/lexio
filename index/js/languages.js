@@ -4,7 +4,7 @@
    The 50-entry list below is a convenience, NOT a gate: any language name
    works, including obscure ones with no ISO code. The store keeps `code`
    (BCP-47 when known, generated slug otherwise) for future TTS /
-   dictionary / AI grounding; direction is guessed from the base subtag
+   dictionary lookup; direction is guessed from the base subtag
    and always overridable per language / per word. Unknown scripts default
    to `auto` so mixed content still renders.
    ========================================================================== */

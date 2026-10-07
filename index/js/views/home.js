@@ -77,18 +77,18 @@
             '<p>Lexio holds only the words you choose — nothing pre-loaded. ' +
             'Pick your language, then add your first five words. It takes about a minute.</p>' +
             '<div class="hero__cta">' +
-              '<a class="btn btn--primary" href="#/welcome">' + Icon('plus') +
-              (lang ? 'Add your first words' : 'Start with your language') + '</a>' +
-              (lang ? '<a class="btn" href="#/learn">Browse categories</a>'
+              '<button type="button" class="btn btn--primary" data-act="add-word">' + Icon('plus') +
+              'Add your first word</button>' +
+              (lang ? '<a class="btn" href="#/home" data-act="browse">Browse categories</a>'
                     : '<button type="button" class="btn" id="hero-lang">' + Icon('globe') + 'Choose a language</button>') +
             '</div>' +
           '</div>' +
           '<aside class="hero__today" aria-label="Get started">' +
             '<div class="today__top"><span class="eyebrow">Today</span></div>' +
             ringSVG(0, 'h') +
-            '<div class="today__copy"><strong>Add 5 words to unlock your first session</strong>' +
-              '<p>Four words open Learn — five make a real set.</p>' +
-              '<a class="btn btn--primary btn--sm" href="#/welcome">' + Icon('plus') + 'Add words</a></div>' +
+            '<div class="today__copy"><strong>Your words, your pace</strong>' +
+              '<p>Start with one word. You can always add more later.</p>' +
+              '<button type="button" class="btn btn--primary btn--sm" data-act="add-word">' + Icon('plus') + 'Add a word</button></div>' +
           '</aside>' +
         '</section>';
     }
@@ -189,6 +189,9 @@
 
     root.innerHTML = html;
     animateNumbers(root);
+    UI.$$('[data-act="add-word"]', root).forEach(function (button) {
+      button.addEventListener('click', function () { QuickAdd.open(); });
+    });
 
     var langBtn = document.getElementById('hero-lang');
     if (langBtn) {

@@ -104,8 +104,8 @@
       '. Nothing is pre-loaded, so you only practise vocabulary you chose.</p>' +
       '</header>';
 
-    var body = (!unlocked && !cat)
-      ? gateHTML(pool.length, gate)
+    var body = (!unlocked)
+      ? gateHTML(Store.words().length, gate)
       : hubHTML(cat, pool);
 
     root.innerHTML =
@@ -114,6 +114,9 @@
       head + body + '</div>';
 
     animateCounts(root);
+    UI.$$('[data-act="add-word"]', root).forEach(function (button) {
+      button.addEventListener('click', function () { QuickAdd.open(); });
+    });
 
     UI.$$('.scope-chip', root).forEach(function (chip) {
       chip.addEventListener('click', function () {
@@ -128,16 +131,15 @@
   /** Encouraging gate shown below GATE_MIN_WORDS. */
   function gateHTML(count, gate) {
     var remaining = gate - count;
-    var noLang = !Store.activeLanguage();
     var body = UI.emptyState({
       icon: 'sparkle',
-      title: count === 0 ? 'No words to practise yet' : 'Just ' + remaining + ' more to go',
+      title: 'Learn unlocks with ' + gate + ' words',
       body: count === 0
-        ? 'Add a handful of words — even four is enough for a first session — and flashcards, quizzes and games all unlock automatically.'
+        ? 'Add ' + gate + ' words in one language to use flashcards, quizzes and games. Add them at your own pace.'
         : 'You have ' + count + (count === 1 ? ' word' : ' words') + '. Add ' + remaining +
           ' more and Learn mode opens up with flashcards, quizzes and games.',
-      actions: '<a class="btn btn--primary" href="' + (noLang || count === 0 ? '#/welcome' : '#/welcome') + '">' +
-               Icon('plus') + 'Add words</a>' +
+      actions: '<button type="button" class="btn btn--primary" data-act="add-word">' +
+               Icon('plus') + 'Add a word</button>' +
                '<a class="btn" href="#/home">See the categories</a>'
     });
 
@@ -256,6 +258,8 @@
     var cat = params.categoryId ? Categories.get(params.categoryId) : null;
     if (params.categoryId && !cat) { Router.go('/learn', true); return; }
 
+    // Deep links must obey the same language-wide gate as the hub.
+    if (Store.words().length < Activities.GATE_MIN_WORDS) { render(root); return; }
     var pool = poolFor(cat);
     if (pool.length < act.minWords) {
       root.innerHTML = '<div class="session session--gate">' + UI.emptyState({

@@ -19,9 +19,6 @@
 
   /* ---- Routes ------------------------------------------------------------ */
   function registerRoutes() {
-    if (Views.welcome) {
-      Router.register('/welcome', Views.welcome, { section: 'home', title: 'Welcome' });
-    }
     Router.register('/home', Views.home, { section: 'home', title: 'Home' });
     Router.register('/category/:id', Views.category, { section: 'home', title: 'Category' });
     Router.register('/learn', Views.learn, { section: 'learn', title: 'Learn' });
@@ -35,18 +32,6 @@
     Router.register('/account', Views.account, { section: 'account', title: 'My Account' });
     Router.register('/manage/category/:categoryId', Views.manage, { section: 'manage', mode: 'manage', title: 'Manage Words' });
     Router.register('/manage', Views.manage, { section: 'manage', mode: 'manage', title: 'Manage Words' });
-  }
-
-  function needsOnboarding() {
-    try { return Store.needsOnboarding && Store.needsOnboarding(); }
-    catch (e) { return false; }
-  }
-
-  function maybeRedirectToWelcome(path) {
-    if (!needsOnboarding()) { return false; }
-    if (path === '/welcome') { return false; }
-    Router.go('/welcome', true);
-    return true;
   }
 
   /* ---- Navigation -------------------------------------------------------- */
@@ -215,124 +200,94 @@
         '<span class="chip__label" id="account-label">Sign in</span>';
   }
 
-  function openLanguageSheet() {
+  function openLanguageSheet(onSelected) {
+    // Click events are not continuation callbacks.
+    if (typeof onSelected !== 'function') { onSelected = null; }
     var langs = Store.languages();
     var activeId = Store.settings.activeLanguageId;
-
-    var list = langs.length
-      ? '<div class="option-list" style="margin-block-end:var(--s-5)">' + langs.map(function (l) {
-          var sub = (l.code ? esc(l.code) + ' · ' : '') +
-            (l.dir === 'rtl' ? 'Right to left' : l.dir === 'auto' ? 'Auto-detect' : 'Left to right');
-          return '<button type="button" class="option" data-pick="' + esc(l.id) + '" ' +
-            'aria-pressed="' + (l.id === activeId) + '">' +
-            '<span class="grow"><span class="option__title" dir="auto">' + esc(l.name) + '</span><br>' +
-            '<span class="option__sub">' + sub + '</span></span>' +
-            (l.id === activeId ? Icon('check', { size: 20 }) : '') +
-          '</button>';
-        }).join('') + '</div>'
-      : '';
-
-    var langOptions = '';
-    try {
-      langOptions = (global.LexioLanguages ? LexioLanguages.all : []).map(function (l) {
-        return '<option value="' + esc(l.name) + '" data-code="' + esc(l.code) + '" data-dir="' + esc(l.dir) + '">';
-      }).join('');
-    } catch (e) { langOptions = ''; }
+    var options = (global.LexioLanguages ? LexioLanguages.all : []).map(function (l) {
+      return '<option value="' + esc(l.name) + '">';
+    }).join('');
+    var list = langs.length ? '<div class="option-list" style="margin-block-end:var(--s-5)">' +
+      langs.map(function (l) {
+        return '<div class="data-row"><button type="button" class="option grow" data-pick="' + esc(l.id) +
+          '" aria-pressed="' + (l.id === activeId) + '"><span class="grow"><span class="option__title" dir="auto">' +
+          esc(l.name) + '</span><br><span class="option__sub">' +
+          (l.dir === 'rtl' ? 'Right to left' : l.dir === 'ltr' ? 'Left to right' : 'Auto-detect') + '</span></span>' +
+          (l.id === activeId ? Icon('check') : '') + '</button>' +
+          '<button type="button" class="icon-btn" data-edit-lang="' + esc(l.id) +
+          '" aria-label="Edit ' + esc(l.name) + '">' + Icon('edit') + '</button></div>';
+      }).join('') + '</div>' : '';
 
     UI.modal({
-      title: 'Language',
-      description: 'Any language works — shortcuts fill in the code, or type your own.',
-      body: list +
-        '<form id="lang-form" class="stack" autocomplete="off">' +
-          '<label class="field">' +
-            '<span class="field__label">Language name</span>' +
-            '<input class="field__input" name="name" dir="auto" required maxlength="40" list="lexio-lang-list" ' +
-              'placeholder="Spanish — or anything, e.g. Hunsrik" data-autofocus>' +
-            '<datalist id="lexio-lang-list">' + langOptions + '</datalist>' +
-            '<span class="field__hint">Start typing a popular language, or enter any name — obscure ones work fully.</span>' +
-          '</label>' +
-          '<label class="field">' +
-            '<span class="field__label">Code <span class="optional">Auto if blank</span></span>' +
-            '<input class="field__input" name="code" dir="ltr" maxlength="20" spellcheck="false" ' +
-              'placeholder="es — or leave blank">' +
-            '<span class="field__hint">Standard tag when one exists (es, pt-BR, zh-Hant-TW). Blank is fine.</span>' +
-          '</label>' +
-          '<label class="field">' +
-            '<span class="field__label">Reading direction</span>' +
-            '<div class="seg" role="radiogroup" aria-label="Reading direction">' +
-              '<label class="seg__opt"><input type="radio" name="dir" value="ltr"><span>Left → right</span></label>' +
-              '<label class="seg__opt"><input type="radio" name="dir" value="rtl"><span>Right ← left</span></label>' +
-              '<label class="seg__opt"><input type="radio" name="dir" value="auto" checked><span>Auto</span></label>' +
-            '</div>' +
-            '<span class="field__hint">Guessed from the code — Auto is safest for unknown scripts.</span>' +
-          '</label>' +
-          '<div class="modal__actions">' +
-            '<button type="button" class="btn" data-act="cancel">Cancel</button>' +
-            '<button type="submit" class="btn btn--primary">' + Icon('plus') + 'Add language</button>' +
-          '</div>' +
-        '</form>',
+      title: 'Choose a language',
+      description: 'Pick a language or type your own. Reading direction is suggested automatically.',
+      body: list + '<form id="lang-form" class="stack" autocomplete="off">' +
+        '<label class="field"><span class="field__label">Language</span>' +
+          '<input class="field__input" name="name" dir="auto" required maxlength="40" list="lexio-lang-list" ' +
+          'placeholder="e.g. Spanish, Arabic, or your own language" data-autofocus>' +
+          '<datalist id="lexio-lang-list">' + options + '</datalist></label>' +
+        '<fieldset class="field" style="border:0;padding:0;margin:0"><legend class="field__label">Reading direction</legend>' +
+          '<div class="seg">' +
+            '<label class="seg__opt"><input type="radio" name="dir" value="auto" checked><span>Auto</span></label>' +
+            '<label class="seg__opt"><input type="radio" name="dir" value="ltr"><span>Left to right</span></label>' +
+            '<label class="seg__opt"><input type="radio" name="dir" value="rtl"><span>Right to left</span></label>' +
+          '</div></fieldset>' +
+        '<div class="modal__actions"><button type="button" class="btn" data-act="cancel">Cancel</button>' +
+          '<button type="submit" class="btn btn--primary">Use language</button></div></form>',
       onMount: function (panel, close) {
-        UI.$('[data-act="cancel"]', panel).addEventListener('click', close);
-
-        UI.$$('[data-pick]', panel).forEach(function (b) {
-          b.addEventListener('click', function () {
-            Store.setActiveLanguage(b.dataset.pick);
-            close();
-            UI.toast('Switched language');
-          });
-        });
-
         var form = UI.$('#lang-form', panel);
-        var nameInput = UI.$('[name="name"]', panel);
-        var codeInput = UI.$('[name="code"]', panel);
-        function guessFor(name, code) {
-          try {
-            if (!global.LexioLanguages) { return { code: code, dir: 'auto' }; }
-            var known = LexioLanguages.getByName(name);
-            if (known) { return { code: code || known.code, dir: known.dir }; }
-            var effective = code || LexioLanguages.suggestCode(name);
-            return { code: effective, dir: LexioLanguages.guessDir(effective) };
-          } catch (e) { return { code: code, dir: 'auto' }; }
-        }
-        function applyPreset(fillCode) {
-          var name = String(nameInput.value || '').trim();
-          if (!name) { return; }
-          var match = null;
-          try {
-            if (global.LexioLanguages) { match = LexioLanguages.getByName(name); }
-          } catch (e) { /* list unavailable */ }
-          if (match) {
-            if (fillCode !== false && !codeInput.value) { codeInput.value = match.code; }
-            var dirRadio = UI.$('input[name="dir"][value="' + match.dir + '"]', panel);
-            if (dirRadio) { dirRadio.checked = true; }
-          } else if (global.LexioLanguages) {
-            var g = guessFor(name, String(codeInput.value || '').trim());
-            var auto = UI.$('input[name="dir"][value="' + g.dir + '"]', panel);
-            if (auto) { auto.checked = true; }
-          }
-        }
-        nameInput.addEventListener('change', function () { applyPreset(true); });
-        nameInput.addEventListener('blur', function () { applyPreset(true); });
-        nameInput.addEventListener('input', function () {
-          if (!codeInput.value) { applyPreset(false); }
-        });
-
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          var fd = new FormData(e.target);
-          var name = String(fd.get('name') || '').trim();
-          var code = String(fd.get('code') || '').trim();
-          var dir = String(fd.get('dir') || 'auto');
-          if (!name) { return; }
-          if (!code && global.LexioLanguages) { code = LexioLanguages.suggestCode(name); }
-          if (code && global.LexioLanguages && !LexioLanguages.isValidCode(code)) {
-            UI.toast('That code looks off — use letters like es, pt-BR, or leave it blank', { icon: 'warning' });
-            return;
-          }
-          var lang = Store.addLanguage({ name: name, code: code, dir: dir });
+        var nameInput = form.elements.name;
+        var editingId = null;
+        var directionTouched = false;
+        function selectLanguage(lang) {
           Store.setActiveLanguage(lang.id);
           close();
-          UI.toast(name + ' added');
+          if (onSelected) { onSelected(lang); }
+        }
+        UI.$('[data-act="cancel"]', panel).addEventListener('click', close);
+        UI.$$('[data-pick]', panel).forEach(function (button) {
+          button.addEventListener('click', function () {
+            selectLanguage(langs.find(function (l) { return l.id === button.dataset.pick; }));
+          });
+        });
+        UI.$$('[data-edit-lang]', panel).forEach(function (button) {
+          button.addEventListener('click', function () {
+            var lang = langs.find(function (l) { return l.id === button.dataset.editLang; });
+            editingId = lang.id;
+            nameInput.value = lang.name;
+            form.elements.dir.value = lang.dir || 'auto';
+            directionTouched = true;
+            UI.$('button[type="submit"]', form).textContent = 'Save language';
+            nameInput.focus();
+          });
+        });
+        UI.$$('input[name="dir"]', form).forEach(function (radio) {
+          radio.addEventListener('change', function () { directionTouched = true; });
+        });
+        nameInput.addEventListener('input', function () {
+          if (directionTouched || !global.LexioLanguages) { return; }
+          var known = LexioLanguages.getByName(nameInput.value.trim());
+          form.elements.dir.value = known ? known.dir : 'auto';
+        });
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var name = nameInput.value.trim();
+          if (!name) { nameInput.focus(); return; }
+          var known = global.LexioLanguages && LexioLanguages.getByName(name);
+          var code = known ? known.code : (global.LexioLanguages ? LexioLanguages.suggestCode(name) : '');
+          var existing = langs.find(function (l) {
+            return l.name.toLocaleLowerCase() === name.toLocaleLowerCase() || (code && l.code === code);
+          });
+          if (editingId && existing && existing.id !== editingId) {
+            UI.toast('That language already exists. Choose it above.', { icon: 'warning' });
+            return;
+          }
+          var data = { name: name, code: code, dir: form.elements.dir.value || 'auto' };
+          var lang = editingId ? Store.updateLanguage(editingId, data)
+            : existing || Store.addLanguage(data);
+          selectLanguage(lang);
+          UI.toast(name + ' selected');
         });
       }
     });
@@ -360,7 +315,6 @@
     var hide = false;
     try {
       var cur = Router.current;
-      if (cur && cur.path === '/welcome') { hide = true; }
       if (document.querySelector('.session')) { hide = true; }
     } catch (e) { /* keep visible */ }
     fab.hidden = hide;
@@ -492,10 +446,6 @@
     global.addEventListener('lexio:navigated', function () {
       syncNav();
       syncFab();
-      try {
-        var hash = (location.hash || '').replace(/^#/, '') || '/home';
-        maybeRedirectToWelcome(hash);
-      } catch (e) { /* router already handling */ }
     });
     global.addEventListener('resize', function () { syncNav(); });
 
@@ -510,11 +460,7 @@
     }).then(function () {
       Router.start();
       syncFab();
-      try {
-        var hash = (location.hash || '').replace(/^#/, '') || '/home';
-        if (!hash || hash === '/home' || hash === '/') { maybeRedirectToWelcome(hash); }
-        else { maybeRedirectToWelcome(hash); }
-      } catch (e) { /* first paint already done */ }
+
     });
 
     if (!Store.isPersistent) {

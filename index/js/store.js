@@ -57,8 +57,7 @@
   }
 
   /** Cold start is intentional: a brand-new user gets zero languages and zero
-      words so onboarding can ask for their real language (with BCP-47 code)
-      and guide them through their first five words. No sample data. */
+      words. They choose a language when ready to add a word. No sample data. */
   function starterDocument() {
     return defaults();
   }
@@ -620,7 +619,6 @@
 
     isLearned: isLearned,
     findDuplicate: findDuplicate,
-    needsOnboarding: function () { return state.languages.length === 0; },
     recordAnswer: recordAnswer,
     finishSession: finishSession,
     clearVocabulary: clearVocabulary,

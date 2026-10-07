@@ -504,7 +504,16 @@
         event.preventDefault();
         var data = formData(wordForm);
         confirmDuplicateThenAdd(data, function (word) {
-          if (word) { UI.toast(entryName(word) + ' added'); }
+          if (word) {
+            UI.toast(entryName(word) + ' added');
+            // Store notifications replace the form; use the new one for rapid entry.
+            var next = UI.$('#word-form', root);
+            if (next) {
+              next.elements.categoryId.value = data.categoryId;
+              next.elements.dir.value = data.dir;
+              next.elements.term.focus({ preventScroll: true });
+            }
+          }
         });
       });
     }
@@ -524,7 +533,7 @@
       });
     }
 
-    root.addEventListener('click', function (event) {
+    root.onclick = function (event) {
       var btn = event.target.closest('[data-act]');
       if (!btn) { return; }
       var act = btn.dataset.act;
@@ -581,7 +590,7 @@
       if (act === 'export') { exportBackup(); }
       if (act === 'import') { UI.$('#import-file', root).click(); }
       if (act === 'reset') { resetAll(); }
-    });
+    };
 
     var file = UI.$('#import-file', root);
     file.addEventListener('change', function () {

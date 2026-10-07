@@ -446,36 +446,5 @@
       return true;
     },
 
-    /**
-     * Call the storage-only AI gateway. The key is present in this request only
-     * when the user saves it; neither the response nor browser storage retains it.
-     */
-    aiInvoke: async function (body) {
-      if (!configured()) { throw new Error('Cloud is not configured.'); }
-      if (!(session && session.user)) { throw new Error('Sign in to connect an AI provider.'); }
-
-      var result = await client.functions.invoke('ai-gateway', { body: body });
-      if (!result.error) { return result.data; }
-
-      // FunctionsHttpError keeps the Edge Function response in `context`.
-      // Surface its safe JSON message instead of Supabase's generic wrapper.
-      var context = result.error.context;
-      if (context && typeof context.clone === 'function') {
-        try {
-          var payload = await context.clone().json();
-          if (payload && payload.error) { throw new Error(String(payload.error)); }
-        } catch (parseError) {
-          if (parseError instanceof Error && parseError.message &&
-              parseError.name !== 'SyntaxError') {
-            throw parseError;
-          }
-        }
-      }
-
-      if (result.error.name === 'FunctionsFetchError') {
-        throw new Error('The AI gateway could not be reached. Check that the function is deployed and try again.');
-      }
-      throw new Error(result.error.message || 'The AI gateway request failed.');
-    },
   };
 })(window);
