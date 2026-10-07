@@ -94,7 +94,7 @@
   ok('activities register five modes', Activities.list().length === 5);
   ok('production and memory activities are available',
     Activities.get('type-it').minWords === 1 && Activities.get('memory').minWords === 3);
-  ok('gate minimum is four words', Activities.GATE_MIN_WORDS === 4);
+  ok('gate minimum is five words', Activities.GATE_MIN_WORDS === 5);
 
   // A fresh word climbs one box per correct answer.
   var learner = Store.addWord({ languageId: lang.id, categoryId: 'numbers', term: 'wahid', meaning: 'one' });

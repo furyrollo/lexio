@@ -1,11 +1,8 @@
 /* ==========================================================================
-   My Account — profile, learning overview, preferences, BYOK-AI connector,
+   My Account — profile, learning overview, preferences,
    security, and data controls.
 
    Identity lives in Supabase Auth (guests fall back to local settings).
-   AI keys are NEVER stored in the browser: the client sends a key once to
-   the 'ai-gateway' edge function, which keeps it encrypted in Supabase
-   Vault and uses it server-side. This UI only ever handles status/hints.
    ========================================================================== */
 (function (global) {
   'use strict';
@@ -175,59 +172,6 @@
     }
   }
 
-  const PROVIDERS = [
-    { id: 'openai', name: 'OpenAI', hint: 'sk-…' },
-    { id: 'anthropic', name: 'Anthropic', hint: 'sk-ant-…' },
-    { id: 'gemini', name: 'Google Gemini', hint: 'AIza…' },
-    { id: 'openrouter', name: 'OpenRouter', hint: 'sk-or-…' },
-    { id: 'omni', name: 'OmniRouter', hint: '' },
-    { id: 'custom', name: 'Other compatible', hint: 'OpenAI-style base URL' },
-  ];
-
-  function aiCard(summary) {
-    var ready = summary.authenticated && global.CloudSync.isConfigured();
-    var body = ready
-      ? '<div id="ai-status" class="ai-status" aria-live="polite">Checking your connection…</div>' +
-        '<form id="ai-form" class="stack">' +
-          '<fieldset class="ai-providers"><legend class="acct-label">Provider</legend>' +
-            PROVIDERS.map(function (p, i) {
-              return '<label class="ai-provider"><input type="radio" name="ai-provider" value="' + p.id + '"' +
-                (i === 0 ? ' checked' : '') + '><span class="ai-provider__tile"><strong>' + esc(p.name) + '</strong>' +
-                (p.hint ? '<small>Keys start with <code>' + esc(p.hint) + '</code></small>'
-                        : '<small>&nbsp;</small>') + '</span></label>';
-            }).join('') +
-          '</fieldset>' +
-          '<label class="field"><span class="field__label">API key</span>' +
-            '<input class="field__input" type="password" name="apiKey" autocomplete="off" spellcheck="false" ' +
-            'placeholder="Paste your key — it is sent once, encrypted at rest, never stored here">' +
-            '<span class="field__hint">Sent over HTTPS straight to the gateway, stored encrypted in Supabase Vault, never written to this browser.</span></label>' +
-          '<label class="field" data-show-when="custom" hidden><span class="field__label">API base URL <span class="optional">Custom provider only</span></span>' +
-            '<input class="field__input" type="url" name="baseUrl" placeholder="https://api.example.com/v1"></label>' +
-          '<div class="modal__actions"><button type="button" class="btn" data-act="ai-clear">Disconnect</button>' +
-            '<button type="submit" class="btn btn--primary">' + Icon('shield') + 'Save key securely</button></div>' +
-        '</form>'
-      : '<p class="acct-note">' + Icon('lock') +
-        'Connect your own AI provider to unlock AI-powered language-learning features. ' +
-        (summary.authenticated
-          ? 'The cloud configuration is missing on this deployment.'
-          : 'Sign in first — keys belong to an account.') + '</p>';
-
-    return '' +
-      '<section class="card card--pad acct-section" aria-labelledby="ac-ai">' +
-        '<h2 id="ac-ai">AI assistant <span class="tag tag--accent">Bring your own key</span></h2>' +
-        '<p class="acct-lede">Connect your own AI provider to unlock AI-powered language-learning ' +
-        'features. Your API key belongs to you — Lexio never pays for your usage and never ' +
-        'sees your key beyond this one encrypted handoff.</p>' +
-        '<ol class="ai-flow" aria-label="How your key is handled">' +
-          '<li>Your browser sends the key once over HTTPS to our gateway.</li>' +
-          '<li>A Supabase Edge Function encrypts it in Vault. It is not stored in this browser.</li>' +
-          '<li>When you use an AI feature, the gateway reads it server-side and calls your provider.</li>' +
-          '<li>Only the response comes back to you.</li>' +
-        '</ol>' +
-        body +
-      '</section>';
-  }
-
   function securityCard(summary) {
     if (!summary.authenticated) {
       return '' +
@@ -298,8 +242,8 @@
         '<h1>' + esc(summary.displayName ||
           (summary.authenticated ? 'Your place in Lexio.' : 'Guest, by choice.')) + '</h1>' +
         '<p>' + (summary.authenticated
-          ? 'Everything about your membership — profile, progress, keys, and your data.'
-          : 'You have full access on this device. Sign in to sync words and unlock AI features.') + '</p>' +
+          ? 'Everything about your membership — profile, progress, preferences, and your data.'
+          : 'You have full access on this device. Sign in to sync your words and notes across devices.') + '</p>' +
       '</header>' +
       '<div class="acct-grid">' +
         '<div class="acct-col">' +
@@ -308,34 +252,18 @@
         '</div>' +
         '<div class="acct-col">' +
           learningCard(snap, recentWords, lang) +
-          aiCard(summary) +
           securityCard(summary) +
           dataCard(summary) +
         '</div>' +
       '</div>';
 
     bind(root, summary);
-    refreshAiStatus(summary);
-  }
-
-  function refreshAiStatus(summary) {
-    var slot = document.getElementById('ai-status');
-    if (!slot || !summary.authenticated || !global.CloudSync.isConfigured()) { return; }
-    CloudSync.aiInvoke({ action: 'status' }).then(function (state) {
-      if (!slot.isConnected) { return; }
-      slot.innerHTML = state.connected
-        ? '<span class="tag tag--accent">Connected · ' + esc(String(state.provider)) +
-          ' ····' + esc(String(state.hint)) + '</span>'
-        : '<span class="tag">No provider connected yet</span>';
-    }).catch(function () {
-      slot.innerHTML = '<span class="tag">Gateway unavailable on this deployment</span>';
-    });
   }
 
   /* ---- interactions ----------------------------------------------------------- */
 
   function bind(root, summary) {
-    root.addEventListener('click', function (event) {
+    root.onclick = function (event) {
       var btn = event.target.closest('[data-act]');
       if (!btn) { return; }
       var act = btn.dataset.act;
@@ -374,13 +302,8 @@
           UI.toast('Vocabulary deleted', { icon: 'trash' });
         });
       }
-      if (act === 'ai-clear') {
-        CloudSync.aiInvoke({ action: 'clear-key' }).then(function () {
-          UI.toast('Provider disconnected.', { icon: 'shield' });
-          refreshAiStatus(summary);
-        }).catch(function (e) { UI.toast(e.message, { icon: 'warning' }); });
-      }
-    });
+
+    };
 
     var nativeToggle = UI.$('#pref-native', root);
     if (nativeToggle) {
@@ -397,41 +320,6 @@
         global.App.applyTheme();
       });
     });
-
-    var aiForm = UI.$('#ai-form', root);
-    if (aiForm) {
-      aiForm.addEventListener('change', function (e) {
-        if (e.target.name === 'ai-provider') {
-          var customHint = UI.$('[data-show-when="custom"]', aiForm);
-          var baseUrlInput = UI.$('[name="baseUrl"]', aiForm);
-          var isCustom = e.target.value === 'custom';
-          if (customHint) { customHint.hidden = !isCustom; }
-          if (baseUrlInput) { baseUrlInput.required = isCustom; }
-        }
-      });
-      aiForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        var fd = new FormData(aiForm);
-        var payload = {
-          action: 'save-key',
-          provider: String(fd.get('ai-provider') || ''),
-          apiKey: String(fd.get('apiKey') || '').trim(),
-          baseUrl: String(fd.get('baseUrl') || '').trim(),
-        };
-        if (!payload.apiKey) { UI.toast('Paste your API key first.', { icon: 'warning' }); return; }
-        var submitBtn = UI.$('button[type="submit"]', aiForm);
-        if (submitBtn) { submitBtn.disabled = true; }
-        CloudSync.aiInvoke(payload).then(function (res) {
-          UI.$('[name="apiKey"]', aiForm).value = '';
-          UI.toast('Key saved securely ····' + (res && res.hint ? res.hint : ''), { icon: 'shield' });
-          refreshAiStatus(summary);
-        }).catch(function (e) {
-          UI.toast(e.message || 'Could not save the key.', { icon: 'warning', duration: 5000 });
-        }).then(function () {
-          if (submitBtn) { submitBtn.disabled = false; }
-        });
-      });
-    }
 
     var importFile = UI.$('#acct-import-file', root);
     if (importFile) {
@@ -560,7 +448,7 @@
   function confirmDeleteAccount() {
     UI.modal({
       title: 'Delete account permanently?',
-      description: 'Your vocabulary, progress, languages, and AI connection are erased. This cannot be undone.',
+      description: 'Your vocabulary, progress, languages, and notes are erased. This cannot be undone.',
       body: '<form id="del-form" class="stack" autocomplete="off">' +
         '<p class="acct-note">' + Icon('warning') + 'Type <strong>DELETE</strong> to confirm.</p>' +
         '<input class="field__input" name="confirmWord" autocomplete="off" spellcheck="false">' +

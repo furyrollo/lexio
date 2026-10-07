@@ -2,9 +2,8 @@
 //
 // Supabase only allows the service role to delete auth users, so the client
 // asks this function (with its own access token) and we verify identity
-// before calling admin.deleteUser(). Cascades remove vocabulary rows, AI
-// provider references, and Vault secrets via ON DELETE CASCADE / explicit
-// cleanup below.
+// before calling admin.deleteUser(). Ownership cascades remove vocabulary,
+// languages, and notebook documents.
 //
 // Deploy: supabase functions deploy delete-account
 
@@ -31,18 +30,6 @@ Deno.serve(async (req) => {
     const userId = data.user.id;
 
     const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-
-    // Remove Vault secrets through the hardened wrapper (the vault schema is
-    // not exposed via PostgREST, and only service role may execute this).
-    const { data: rows, error: rowsError } = await admin
-      .from('user_ai_providers').select('secret_id').eq('user_id', userId);
-    if (rowsError) throw new Error('AI provider lookup failed.');
-    for (const row of rows ?? []) {
-      const { error: secretError } = await admin.rpc('lexio_delete_ai_secret', {
-        p_secret_id: row.secret_id,
-      });
-      if (secretError) throw new Error('AI secret deletion failed.');
-    }
 
     const { error: delError } = await admin.auth.admin.deleteUser(userId);
     if (delError) {

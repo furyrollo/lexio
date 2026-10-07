@@ -371,12 +371,9 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
-# Both functions verify the bearer token themselves with auth.getUser(). This
+# Account deletion verifies the bearer token itself with auth.getUser(). This
 # supports current Supabase signing keys and avoids relying on the legacy Edge
 # gateway JWT check as a second, differently configured authentication layer.
-[functions.ai-gateway]
-verify_jwt = false
-
 [functions.delete-account]
 verify_jwt = false
 

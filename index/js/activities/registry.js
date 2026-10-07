@@ -43,7 +43,7 @@
   var byId = {};
 
   /** Minimum words across the active language before Learn unlocks at all. */
-  var GATE_MIN_WORDS = 4;
+  var GATE_MIN_WORDS = 5;
 
   function register(def) {
     if (!def || !def.id || typeof def.create !== 'function') {

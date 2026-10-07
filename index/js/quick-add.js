@@ -10,7 +10,6 @@
 
   var esc = UI.esc;
   var lastCategoryId = 'greetings';
-  var pendingDupId = null;
 
   function currentCategoryContext() {
     try {
@@ -24,7 +23,7 @@
         }
       }
       var scoped = Store.settings && Store.settings.learnScopeId;
-      if (scoped && Categories.get(scoped)) { return scoped; }
+      if (cur && cur.route.meta.section === 'learn' && scoped && Categories.get(scoped)) { return scoped; }
     } catch (e) { /* fall through to last used */ }
     return lastCategoryId || 'greetings';
   }
@@ -36,34 +35,22 @@
     }).join('');
   }
 
-  function catPills(selected) {
-    var dark = document.documentElement.dataset.theme === 'dark';
-    return '<div class="qa-cats" role="group" aria-label="Category">' +
-      Categories.all.map(function (cat) {
-        var sel = cat.id === selected;
-        return '<button type="button" class="qa-cat" data-cat="' + cat.id + '" ' +
-          'aria-pressed="' + sel + '" style="' + Categories.styleVars(cat, dark) + '">' +
-          Icon(cat.icon) + '<span>' + esc(cat.name) + '</span></button>';
-      }).join('') + '</div>';
-  }
-
   function open(overrideCategoryId) {
     var lang = Store.activeLanguage();
     if (!lang) {
-      // No home for the word yet — onboarding asks for the language first.
-      if (Store.needsOnboarding && Store.needsOnboarding()) { Router.go('/welcome'); return; }
-      if (global.App && App.openLanguageSheet) { App.openLanguageSheet(); }
-      else { UI.toast('Add a language first', { icon: 'warning' }); }
+      if (global.App && App.openLanguageSheet) {
+        App.openLanguageSheet(function () { open(overrideCategoryId); });
+      } else { UI.toast('Choose a language first', { icon: 'warning' }); }
       return;
     }
     var catId = (overrideCategoryId && Categories.get(overrideCategoryId))
       ? overrideCategoryId
       : currentCategoryContext();
-    pendingDupId = null;
+    var pendingDupId = null;
 
     UI.modal({
-      title: 'Quick add',
-      description: 'Just the word and its meaning — the rest can wait.',
+      title: 'Add a word',
+      description: lang.name + ' · Add one word or keep going at your own pace.',
       body:
         '<form id="qa-form" class="stack" autocomplete="off">' +
           '<label class="field"><span class="field__label">Word</span>' +
@@ -72,12 +59,11 @@
           '<label class="field"><span class="field__label">Meaning</span>' +
             '<input class="field__input" name="meaning" dir="auto" required maxlength="300" ' +
               'placeholder="e.g. hello"></label>' +
-          '<div class="field"><span class="field__label">Category</span>' +
-            catPills(catId) +
-            '<input type="hidden" name="categoryId" value="' + esc(catId) + '"></div>' +
+          '<label class="field"><span class="field__label">Category</span>' +
+            '<select class="field__select" name="categoryId">' + categoryOptions(catId) + '</select></label>' +
           '<div id="qa-dup" class="form-error hide" role="alert"></div>' +
-          '<div id="qa-added" class="qa-added hide" role="status">' + Icon('check') + '<span>Added ✓</span></div>' +
-          '<details class="welcome__more"><summary class="btn btn--ghost btn--sm">More (native script, example, direction)</summary>' +
+          '<div id="qa-added" class="qa-added hide" role="status">' + Icon('check') + '<span>Word added</span></div>' +
+          '<details class="qa-more"><summary class="btn btn--ghost btn--sm">Optional details</summary>' +
             '<div class="stack" style="margin-block-start:var(--s-3)">' +
               '<label class="field"><span class="field__label">Native script <span class="optional">Optional</span></span>' +
                 '<input class="field__input" name="nativeScript" dir="auto" maxlength="200"></label>' +
@@ -100,16 +86,7 @@
         var dupBox = UI.$('#qa-dup', panel);
         var addedBox = UI.$('#qa-added', panel);
         var submitBtn = UI.$('button[type="submit"]', panel);
-        var catInput = UI.$('input[name="categoryId"]', panel);
-
-        UI.$$('.qa-cat', panel).forEach(function (pill) {
-          pill.addEventListener('click', function () {
-            UI.$$('.qa-cat', panel).forEach(function (p) { p.setAttribute('aria-pressed', 'false'); });
-            pill.setAttribute('aria-pressed', 'true');
-            catInput.value = pill.dataset.cat;
-            lastCategoryId = pill.dataset.cat;
-          });
-        });
+        var addedTimer = null;
 
         function showDup(existing) {
           dupBox.classList.remove('hide');
@@ -124,7 +101,8 @@
         }
         function flashAdded() {
           addedBox.classList.remove('hide');
-          setTimeout(function () { addedBox.classList.add('hide'); }, 800);
+          clearTimeout(addedTimer);
+          addedTimer = setTimeout(function () { addedBox.classList.add('hide'); }, 1200);
         }
 
         form.addEventListener('input', function (e) {
@@ -144,6 +122,18 @@
             example: String(fd.get('example') || '').trim(),
             dir: String(fd.get('dir') || 'auto')
           };
+          if (!data.term && !data.nativeScript) {
+            dupBox.textContent = 'Enter a word or its native spelling.';
+            dupBox.classList.remove('hide');
+            form.elements.term.focus();
+            return;
+          }
+          if (!data.meaning) {
+            dupBox.textContent = 'Enter a meaning.';
+            dupBox.classList.remove('hide');
+            form.elements.meaning.focus();
+            return;
+          }
           lastCategoryId = data.categoryId;
           var dup = Store.findDuplicate(data, lang.id);
           if (dup && pendingDupId !== dup.id) {
@@ -157,12 +147,12 @@
           pendingDupId = null;
           flashAdded();
           // Stay open for rapid entry: clear the word fields, keep category.
-          form.term.value = '';
-          if (form.nativeScript) { form.nativeScript.value = ''; }
-          form.meaning.value = '';
-          if (form.example) { form.example.value = ''; }
+          form.elements.term.value = '';
+          if (form.elements.nativeScript) { form.elements.nativeScript.value = ''; }
+          form.elements.meaning.value = '';
+          if (form.elements.example) { form.elements.example.value = ''; }
           hideDup();
-          form.term.focus();
+          form.elements.term.focus();
         });
       }
     });
